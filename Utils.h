@@ -1,5 +1,5 @@
-#pragma once
-#define WIDTH 1024
-#define HEIGHT 600
+#define WIDTH 1390
+#define HEIGHT 800
 #include <mutex>
-static std::mutex mtx;
+extern std::mutex mtx;
+

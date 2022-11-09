@@ -1,10 +1,14 @@
 #include "App.h"
 #include <iostream>
-App::App() : window(sf::VideoMode(WIDTH, HEIGHT), "simple music visualizer")
+#include "Utils.h"
+#include "implot.h"
+#include <limits>
+std::mutex mtx;
+App::App() : window(sf::VideoMode(WIDTH, HEIGHT), "Simple music visualizer")
 {
     window.setVerticalSyncEnabled(true);
     ImGui::SFML::Init(window);
-    fftStream.setCtx(bars);
+    fftStream.setCtx(normalizedOutputFFT);
 }
 void App::run()
 {
@@ -31,11 +35,51 @@ void App::handleEvents()
 }
 void App::update()
 {
-    ImGui::SFML::Update(window, clock.restart());
+    auto time = clock.restart();
+    float dt = time.asSeconds();
+    ImGui::SFML::Update(window, time);
+    imgui(dt);
 }
-void App::imgui()
+void App::imgui(float dt)
 {
+    ImPlot::CreateContext();
+    ImGui::Begin("FFT");
+    if (ImPlot::BeginPlot("FFT")) {
+        std::lock_guard<std::mutex> lock(mtx);
+        ImPlot::SetupAxisLimits(ImAxis_X1, 0, float(511 * 44100.0f) / 1024.0f);
+        ImPlot::SetupAxisLimits(ImAxis_Y1, -90, 0);
+        float x[512];
+        for(int i = 0; i < 512; i++)
+        {
+            x[i] = float(i * 44100.0f) / 1024.0f;
+
+        }
+        ImPlot::PlotLine("output", x, normalizedOutputFFT, 512);
+        ImPlot::EndPlot();
+    }
+    ImGui::End();
+    ImGui::Begin("FPS Grafica");
+    static ScrollingBuffer sdata;
+
+    currentTime += dt;
+    sdata.AddPoint(currentTime, 1.0f / dt);
+    static float history = 10.0f;
+    ImGui::SliderFloat("History", &history, 1, 30, "%.1f s");
+
+    if (ImPlot::BeginPlot("##Scrolling", ImVec2(-1, 150))) {
+
+        ImPlot::SetupAxisLimits(ImAxis_X1, currentTime - history, currentTime, ImGuiCond_Always);
+        ImPlot::SetupAxisLimits(ImAxis_Y1, 0, 100);
+        ImPlot::SetNextFillStyle(IMPLOT_AUTO_COL,0.5f);
+        ImPlot::PlotLine("FPS", &sdata.Data[0].x, &sdata.Data[0].y, sdata.Data.size(), 0, sdata.Offset, 2 * sizeof(float));
+        ImPlot::EndPlot();
+    }
+
+    ImGui::End();
+    ImPlot::DestroyContext();
+
     ImGui::Begin("Configuraciones");
+
     if (ImGui::Button("Abrir archivo"))
     {
         fileDialog.Open();
@@ -43,20 +87,46 @@ void App::imgui()
     ImGui::SameLine();
     if (ImGui::Button("Escuchar") && selectedFile.size() > 0)
     {
+        switch (fftStream.getStatus()) {
+            case FFTStream::Playing:
+                fftStream.stop();
+                break;
+            case FFTStream::Paused:
+                fftStream.stop();
+                break;
+            case FFTStream::Stopped:
+                break;
+        }
         sf::SoundBuffer sb;
+        playingFile = selectedFile;
         sb.loadFromFile(selectedFile);
         fftStream.load(sb);
         fftStream.play();
     }
-    if (ImGui::Button("Detener") && fftStream.getStatus() == fftStream.Playing)
+    ImGui::Spacing();
+    if (ImGui::Button("Reanudar/Detener"))
     {
-        fftStream.pause();
+        if(fftStream.getStatus() == fftStream.Playing)
+        {
+            fftStream.pause();
+        }else if(fftStream.getStatus() == fftStream.Paused)
+        {
+            fftStream.play();
+        }
     }
-    ImGui::SameLine();
-    if (ImGui::Button("Reanudar") && fftStream.getStatus() == fftStream.Paused)
+    ImGui::Spacing();
+    if(playingFile.size() > 0)
     {
-        fftStream.play();
+        std::filesystem::path path(playingFile);
+
+        ImGui::Text("%s", path.filename().c_str());
     }
+    float frac = 0;
+    if (fftStream.getStatus() == fftStream.Playing || fftStream.getStatus() == fftStream.Paused)
+    {
+        frac = fftStream.getPlayingOffset().asSeconds() / fftStream.getDuration();
+    }
+    ImGui::ProgressBar(frac);
     ImGui::End();
     fileDialog.Display();
     if (fileDialog.HasSelected())
@@ -67,14 +137,8 @@ void App::imgui()
 }
 void App::render()
 {
-    imgui();
-
-    window.clear();
-    std::lock_guard<std::mutex> lock(mtx);
-    for (int i = 0; i < 512; i++)
-    {
-        bars[i].render(window);
-    }
+    sf::Color color(16, 17, 18);
+    window.clear(color);
 
     ImGui::SFML::Render(window);
     window.display();
