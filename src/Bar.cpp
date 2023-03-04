@@ -1,17 +1,24 @@
 #include "Bar.h"
-Bar::Bar()
+#include <iostream>
+Bar::Bar(int height) : bar(sf::LineStrip, height)
 {
-    bar.setFillColor(sf::Color::Green);
+   
 }
-void Bar::setHeight(float height)
-{
-    bar.setSize({2, height});
-}
+
 void Bar::setPos(float x, float y)
 {
-    bar.setPosition(x, y);
+    float yy = y;
+    for(int i = 0; i < bar.getVertexCount(); i++)
+    {
+        bar[i].position = {x, yy};
+        yy--;
+    }
 }
 void Bar::render(sf::RenderTarget &rt)
 {
     rt.draw(bar);
+}
+void Bar::setColor(int i, sf::Color color)
+{
+    bar[i].color = color;
 }

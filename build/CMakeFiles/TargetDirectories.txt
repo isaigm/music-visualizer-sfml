@@ -1,0 +1,9 @@
+/home/isaigm/music-visualizer-sfml/build/CMakeFiles/MusicVisualizer.dir
+/home/isaigm/music-visualizer-sfml/build/CMakeFiles/edit_cache.dir
+/home/isaigm/music-visualizer-sfml/build/CMakeFiles/rebuild_cache.dir
+/home/isaigm/music-visualizer-sfml/build/ImGUI/CMakeFiles/ImGUI.dir
+/home/isaigm/music-visualizer-sfml/build/ImGUI/CMakeFiles/edit_cache.dir
+/home/isaigm/music-visualizer-sfml/build/ImGUI/CMakeFiles/rebuild_cache.dir
+/home/isaigm/music-visualizer-sfml/build/ImPlot/CMakeFiles/ImPlot.dir
+/home/isaigm/music-visualizer-sfml/build/ImPlot/CMakeFiles/edit_cache.dir
+/home/isaigm/music-visualizer-sfml/build/ImPlot/CMakeFiles/rebuild_cache.dir

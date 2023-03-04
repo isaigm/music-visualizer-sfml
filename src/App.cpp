@@ -4,11 +4,32 @@
 #include "implot.h"
 #include <limits>
 std::mutex mtx;
+
 App::App() : window(sf::VideoMode(WIDTH, HEIGHT), "Simple music visualizer")
 {
-    window.setVerticalSyncEnabled(true);
+
     ImGui::SFML::Init(window);
     fftStream.setCtx(normalizedOutputFFT);
+    window.setVerticalSyncEnabled(true);
+    auto gen_colors = [=](std::vector<sf::Color> &colors, sf::Color startColor, sf::Color endColor, int n)
+    {
+        float t = 0;
+        float dt = 1 / float(n);
+        for (int i = 0; i < n; i++)
+        {
+            int r = lerp(startColor.r, endColor.r, t);
+            int g = lerp(startColor.g, endColor.g, t);
+            int b = lerp(startColor.b, endColor.b, t);
+            sf::Color color(r, g, b);
+            colors.push_back(color);
+            t += dt;
+        }
+    };
+    gen_colors(colors, sf::Color(0x9D0000FF), sf::Color::Yellow, 128);
+    gen_colors(colors, sf::Color::Yellow, sf::Color::Green, 128);
+    gen_colors(colors, sf::Color::Green, sf::Color(0x00FFEDFF), 128);
+    gen_colors(colors, sf::Color(0x00FFEDFF), sf::Color::Blue, 64);
+    gen_colors(colors, sf::Color::Blue, sf::Color::Black, 64);
 }
 void App::run()
 {
@@ -40,44 +61,52 @@ void App::update()
     ImGui::SFML::Update(window, time);
     imgui(dt);
 }
-void App::imgui(float dt)
+void App::updateGraphs(float dt)
 {
     ImPlot::CreateContext();
     ImGui::Begin("FFT");
-    if (ImPlot::BeginPlot("FFT")) {
+    if (ImPlot::BeginPlot("FFT"))
+    {
         std::lock_guard<std::mutex> lock(mtx);
-        ImPlot::SetupAxisLimits(ImAxis_X1, 0, float(511 * 44100.0f) / 1024.0f);
-        ImPlot::SetupAxisLimits(ImAxis_Y1, -90, 0);
+        ImPlot::SetupAxisLimits(ImAxis_X1, 0, float(512 * 44100.0f) / 1024.0f);
+        ImPlot::SetupAxisLimits(ImAxis_Y1, 0, -90);
+        float time = 2048 / (44100 * 2);
+        if (fftStream.getStatus() != FFTStream::Playing)
+            goto end;
+        currentTime += dt;
+        if (currentTime < time)
+            goto end;
         float x[512];
-        for(int i = 0; i < 512; i++)
+        if (currx > WIDTH)
+        {
+            currx = 0;
+            spectrogram.erase(spectrogram.begin());
+            for (int i = 0; i < spectrogram.size(); i++)
+            {
+                spectrogram[i].setPos(i, HEIGHT);
+            }
+            currx = WIDTH;
+        }
+        spectrogram.emplace_back(512);
+        spectrogram.back().setPos(currx, HEIGHT);
+        for (int i = 0; i < 512; i++)
         {
             x[i] = float(i * 44100.0f) / 1024.0f;
-
+            int idx = map(normalizedOutputFFT[i], 0, -90, 0, 511);
+            spectrogram.back().setColor(i, colors[idx]);
         }
+        currx++;
         ImPlot::PlotLine("output", x, normalizedOutputFFT, 512);
+        currentTime = 0;
+        end:
         ImPlot::EndPlot();
     }
-    ImGui::End();
-    ImGui::Begin("FPS Grafica");
-    static ScrollingBuffer sdata;
-
-    currentTime += dt;
-    sdata.AddPoint(currentTime, 1.0f / dt);
-    static float history = 10.0f;
-    ImGui::SliderFloat("History", &history, 1, 30, "%.1f s");
-
-    if (ImPlot::BeginPlot("##Scrolling", ImVec2(-1, 150))) {
-
-        ImPlot::SetupAxisLimits(ImAxis_X1, currentTime - history, currentTime, ImGuiCond_Always);
-        ImPlot::SetupAxisLimits(ImAxis_Y1, 0, 100);
-        ImPlot::SetNextFillStyle(IMPLOT_AUTO_COL,0.5f);
-        ImPlot::PlotLine("FPS", &sdata.Data[0].x, &sdata.Data[0].y, sdata.Data.size(), 0, sdata.Offset, 2 * sizeof(float));
-        ImPlot::EndPlot();
-    }
-
     ImGui::End();
     ImPlot::DestroyContext();
-
+}
+void App::imgui(float dt)
+{
+    updateGraphs(dt);
     ImGui::Begin("Configuraciones");
 
     if (ImGui::Button("Abrir archivo"))
@@ -87,35 +116,39 @@ void App::imgui(float dt)
     ImGui::SameLine();
     if (ImGui::Button("Escuchar") && selectedFile.size() > 0)
     {
-        switch (fftStream.getStatus()) {
-            case FFTStream::Playing:
-                fftStream.stop();
-                break;
-            case FFTStream::Paused:
-                fftStream.stop();
-                break;
-            case FFTStream::Stopped:
-                break;
+        switch (fftStream.getStatus())
+        {
+        case FFTStream::Playing:
+            fftStream.stop();
+            break;
+        case FFTStream::Paused:
+            fftStream.stop();
+            break;
+        case FFTStream::Stopped:
+            break;
         }
         sf::SoundBuffer sb;
         playingFile = selectedFile;
         sb.loadFromFile(selectedFile);
+        spectrogram.erase(spectrogram.begin(), spectrogram.end());
+        currx = 0;
         fftStream.load(sb);
         fftStream.play();
     }
     ImGui::Spacing();
     if (ImGui::Button("Reanudar/Detener"))
     {
-        if(fftStream.getStatus() == fftStream.Playing)
+        if (fftStream.getStatus() == fftStream.Playing)
         {
             fftStream.pause();
-        }else if(fftStream.getStatus() == fftStream.Paused)
+        }
+        else if (fftStream.getStatus() == fftStream.Paused)
         {
             fftStream.play();
         }
     }
     ImGui::Spacing();
-    if(playingFile.size() > 0)
+    if (playingFile.size() > 0)
     {
         std::filesystem::path path(playingFile);
 
@@ -139,7 +172,10 @@ void App::render()
 {
     sf::Color color(16, 17, 18);
     window.clear(color);
-
+    for (auto &b : spectrogram)
+    {
+        b.render(window);
+    }
     ImGui::SFML::Render(window);
     window.display();
 }

@@ -7,11 +7,7 @@
 #include "Bar.h"
 #define REAL 0
 #define IMAG 1
-static float map(float n, float x1, float x2, float y1, float y2)
-{
-    float m = (y2 - y1) / (x2 - x1);
-    return y1 + m * (n - x1);
-}
+
 class FFTStream : public sf::SoundStream
 {
 public:
@@ -20,7 +16,6 @@ public:
     void setCtx(float *);
     float getDuration();
     void load(const sf::SoundBuffer &buffer);
-
 private:
     static const int samplesToStream = 2048;
     virtual bool onGetData(Chunk &data);
@@ -29,9 +24,11 @@ private:
     std::size_t m_currentSample;
     fftw_complex signal[samplesToStream / 2];
     fftw_complex output[samplesToStream / 2];
-    float last_output[512];
+    float last_output[1024];
     float *normalizedOutputFFT;
     fftw_plan plan;
+    double peak = 0;
     float duration = 0;
+
 };
 #endif

@@ -4,12 +4,12 @@
 class Bar
 {
 public:
-    Bar();
-    void setHeight(float height);
+    Bar(int height);
     void setPos(float x, float y);
     void render(sf::RenderTarget &rt);
+    void setColor(int i, sf::Color color);
 
 private:
-    sf::RectangleShape bar;
+    sf::VertexArray bar;
 };
 #endif
