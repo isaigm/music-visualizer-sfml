@@ -2,12 +2,11 @@
 #define APP_H
 #include <SFML/Graphics.hpp>
 #include <vector>
-#include "Bar.h"
 #include "imgui-SFML.h"
 #include "imgui.h"
 #include "FFTStream.h"
 #include "imfilebrowser.h"
-
+#include "Spectrogram.h"
 class App
 {
 public:
@@ -19,15 +18,16 @@ private:
     void render();
     void imgui(float dt);
     void updateGraphs(float dt);
-    std::vector<sf::Color> colors;
+    void fileButton();
+    void playButton();
+    void toggleButton();
     sf::RenderWindow window;
     sf::Clock clock;
     std::string playingFile, selectedFile;
     FFTStream fftStream;
     ImGui::FileBrowser fileDialog;
+    Spectrogram spectrogram;
     ImFont *font;
-    float currentTime = 0, currx = 0;
-    float normalizedOutputFFT[1024];
-    std::vector<Bar> spectrogram;
+    float currentTime = 0;
 };
 #endif

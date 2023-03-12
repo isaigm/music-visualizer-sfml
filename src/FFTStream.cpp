@@ -7,83 +7,82 @@ FFTStream::FFTStream()
                             output,
                             FFTW_FORWARD,
                             FFTW_ESTIMATE);
-
-}
-FFTStream::~FFTStream()
-{
-    fftw_destroy_plan(plan);
-}
-void FFTStream::setCtx(float *normalizedOutput)
-{
-    normalizedOutputFFT = normalizedOutput;
     for (int i = 0; i < 1024; i++)
     {
         normalizedOutputFFT[i] = 0;
         last_output[i] = 0;
     }
-
 }
-void FFTStream::load(const sf::SoundBuffer &buffer)
+FFTStream::~FFTStream()
 {
-    m_samples.assign(buffer.getSamples(), buffer.getSamples() + buffer.getSampleCount());
-    m_currentSample = 0;
-    initialize(buffer.getChannelCount(), buffer.getSampleRate());
-    duration = buffer.getDuration().asSeconds();
-    peak = 0;
+    fftw_destroy_plan(plan);
 }
-float FFTStream::getDuration()
+void FFTStream::load(std::string path)
 {
-    return duration;
+    inputFile.openFromFile(path);
+    initialize(inputFile.getChannelCount(), inputFile.getSampleRate());
+    peak = 1;
+}
+float FFTStream::getElapsedTime()
+{
+    float frac = 0;
+    if (getStatus() == Playing || getStatus() == Paused)
+    {
+        frac = getPlayingOffset().asSeconds() / inputFile.getDuration().asSeconds();
+    }
+    return frac;
 }
 bool FFTStream::onGetData(Chunk &data)
 {
-
-    data.samples = &m_samples[m_currentSample];
-
-    if (m_currentSample + samplesToStream <= m_samples.size())
-    {
-        int j = 0;
-        for (int i = m_currentSample; i < m_currentSample + samplesToStream; i += 2)
-        {
-            signal[j][REAL] =  float(m_samples[i]) / 32767.0f;
-            signal[j][IMAG] = 0;
-            j++;
-        }
-        for (int i = 0; i < 1024; i++)
-        {
-            double amp = sqrt(output[i][REAL] * output[i][REAL] +
-                              output[i][IMAG] * output[i][IMAG]);
-            peak = std::max(peak, amp);
-            
-        }
-      
-        fftw_execute(plan);
-
-        std::lock_guard<std::mutex> lock(mtx);
-        for (int i = 0; i < 1024; i++)
-        {
-            double amp = sqrt(output[i][REAL] * output[i][REAL] +
-                              output[i][IMAG] * output[i][IMAG]);
-
-            float avg = (amp + last_output[i]) / 2;
-            normalizedOutputFFT[i] = 20 * log10(avg / peak);
-            last_output[i] = avg;
-        }
-      
-       
-        data.sampleCount = samplesToStream;
-        m_currentSample += samplesToStream;
-        return true;
-    }
-    else
-    {
-        data.sampleCount = m_samples.size() - m_currentSample;
-        m_currentSample = m_samples.size();
+    int nsamples = inputFile.read(samples, samplesToStream);
+    if (nsamples < samplesToStream)
         return false;
+
+    data.sampleCount = samplesToStream;
+    data.samples = samples;
+    int j = 0;
+    for (int i = 0; i < samplesToStream; i += 2)
+    {
+        signal[j][REAL] = float(samples[i]) / 32767.0f;
+        signal[j][IMAG] = 0;
+        j++;
     }
+    for (int i = 0; i < 1024; i++)
+    {
+        double amp = sqrt(output[i][REAL] * output[i][REAL] +
+                          output[i][IMAG] * output[i][IMAG]);
+        peak = std::max(peak, amp);
+    }
+    fftw_execute(plan);
+    std::lock_guard<std::mutex> lock(mtx);
+    for (int i = 0; i < 1024; i++)
+    {
+        double amp = sqrt(output[i][REAL] * output[i][REAL] +
+                          output[i][IMAG] * output[i][IMAG]);
+
+        float avg = (amp + last_output[i]) / 2;
+        normalizedOutputFFT[i] = 20 * log10(avg / peak);
+        last_output[i] = avg;
+    }
+    return true;
 }
 
 void FFTStream::onSeek(sf::Time timeOffset)
 {
-    m_currentSample = static_cast<std::size_t>(timeOffset.asSeconds() * getSampleRate() * getChannelCount());
+    inputFile.seek(timeOffset);
+}
+float *FFTStream::getCurrentFFT()
+{
+    return normalizedOutputFFT;
+}
+void FFTStream::toggle()
+{
+    if (getStatus() == Playing)
+    {
+        pause();
+    }
+    else if (getStatus() == Paused)
+    {
+        play();
+    }
 }
