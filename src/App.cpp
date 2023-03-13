@@ -56,6 +56,7 @@ void App::updateGraphs(float dt)
                 frequencies[i] = float(i * 44100.0f) / 1024.0f;
             }
             ImPlot::PlotLine("output", frequencies, fftStream.getCurrentFFT(), 512);
+            
         }
         if (fftStream.getStatus() == FFTStream::Playing)
         {

@@ -47,13 +47,15 @@ bool FFTStream::onGetData(Chunk &data)
         signal[j][IMAG] = 0;
         j++;
     }
+   
+    fftw_execute(plan);
+
     for (int i = 0; i < 1024; i++)
     {
         double amp = sqrt(output[i][REAL] * output[i][REAL] +
                           output[i][IMAG] * output[i][IMAG]);
         peak = std::max(peak, amp);
     }
-    fftw_execute(plan);
     std::lock_guard<std::mutex> lock(mtx);
     for (int i = 0; i < 1024; i++)
     {

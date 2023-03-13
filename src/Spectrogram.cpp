@@ -1,5 +1,6 @@
 #include "Spectrogram.h"
 #include "Utils.h"
+#include <iostream>
 Spectrogram::Spectrogram(int ml) : maxLines(ml)
 {
     auto gen_colors = [=](std::vector<sf::Color> &colors, sf::Color startColor, sf::Color endColor, int n)
@@ -19,8 +20,7 @@ Spectrogram::Spectrogram(int ml) : maxLines(ml)
     gen_colors(colors, sf::Color(0x9D0000FF), sf::Color::Yellow, 128);
     gen_colors(colors, sf::Color::Yellow, sf::Color::Green, 128);
     gen_colors(colors, sf::Color::Green, sf::Color(0x00FFEDFF), 128);
-    gen_colors(colors, sf::Color(0x00FFEDFF), sf::Color::Blue, 64);
-    gen_colors(colors, sf::Color::Blue, sf::Color::Black, 64);
+    gen_colors(colors, sf::Color(0x00FFEDFF), sf::Color::Blue, 128);
 }
 void Spectrogram::addLine(float y)
 {
@@ -41,8 +41,13 @@ void Spectrogram::coloredLine(float *fft)
 {
     for (int i = 0; i < 512; i++)
     {
-        int idx = map(fft[i], 0, -90, 0, 511);
-        spectrogram.back().setColor(i, colors[idx]);
+        sf::Color color(16, 17, 18);
+        if(fft[i] >= -90)
+        {
+            int idx = map(fft[i], 0, -90, 0, 511);
+            color = colors[idx];
+        }
+        spectrogram.back().setColor(i, color);
     }
 }
 void Spectrogram::restart()
