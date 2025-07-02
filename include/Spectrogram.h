@@ -6,13 +6,17 @@
 class Spectrogram
 {
 public:
-    Spectrogram(int);
+    Spectrogram(const sf::FloatRect &bounds);
+
+    void addLine();
     void render(sf::RenderTarget &rt);
     void restart();
-    void addLine(float y);
     void coloredLine(float *);
+
 private:
+    void generateColors();
     std::vector<Bar> spectrogram;
+    sf::FloatRect m_bounds; 
     std::vector<sf::Color> colors;
     int maxLines = 0;
     int currLine = 0;

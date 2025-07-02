@@ -12,6 +12,7 @@ class App
 public:
     App();
     void run();
+
 private:
     void handleEvents();
     void update();
@@ -26,8 +27,10 @@ private:
     std::string playingFile, selectedFile;
     FFTStream fftStream;
     ImGui::FileBrowser fileDialog;
-    Spectrogram spectrogram;
+    bool m_showFileErrorPopup = false;
+    Spectrogram spectrogram{{{0.f, 1080 - 512}, {(float)WIDTH, 512.f}}};
     ImFont *font;
     float currentTime = 0;
+    float m_playbackProgress = 0.0f;
 };
 #endif

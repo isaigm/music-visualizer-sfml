@@ -14,18 +14,25 @@ class FFTStream : public sf::SoundStream
 public:
     FFTStream();
     ~FFTStream();
+    unsigned int getSampleRate() const;
+    unsigned int getChannelCount() const;
     float *getCurrentFFT();
+    float *getOriginalFFT();
     float getElapsedTime();
-    void load(std::string path);
+    bool load(std::string path);
     void toggle();
+    void seek(float normalized_time);
+    static const int samplesToStream = SIZE_FFT * 2;
+    
+
 private:
-    static const int samplesToStream = 2048;
     virtual bool onGetData(Chunk &data);
     virtual void onSeek(sf::Time timeOffset);
-    fftw_complex signal[samplesToStream / 2];
-    fftw_complex output[samplesToStream / 2];
-    float last_output[samplesToStream / 2];
-    float normalizedOutputFFT[samplesToStream / 2];
+    fftw_complex signal[SIZE_FFT];
+    fftw_complex output[SIZE_FFT];
+    float last_output[SIZE_FFT];
+    float normalizedOutputFFT[SIZE_FFT];
+    float original_output[SIZE_FFT];
     fftw_plan plan;
     double peak = 1;
     int16_t samples[samplesToStream];
