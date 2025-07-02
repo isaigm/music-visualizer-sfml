@@ -2,6 +2,7 @@
 #define FFTSTREAM_H
 #include <SFML/Audio.hpp>
 #include <fftw3.h>
+#include <cstdint>
 #include <math.h>
 #include "Utils.h"
 #include "Bar.h"
@@ -27,7 +28,7 @@ private:
     float normalizedOutputFFT[samplesToStream / 2];
     fftw_plan plan;
     double peak = 1;
-    sf::Int16 samples[samplesToStream];
+    int16_t samples[samplesToStream];
     sf::InputSoundFile inputFile;
 
 };

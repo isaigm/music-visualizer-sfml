@@ -5,7 +5,7 @@
 #include <limits>
 std::mutex mtx;
 
-App::App() : window(sf::VideoMode(WIDTH, HEIGHT), "Simple music visualizer"), spectrogram(WIDTH)
+App::App() : window(sf::VideoMode({WIDTH, HEIGHT}), "Simple music visualizer"), spectrogram(WIDTH)
 {
     ImGui::SFML::Init(window);
     window.setVerticalSyncEnabled(true);
@@ -22,11 +22,13 @@ void App::run()
 }
 void App::handleEvents()
 {
-    sf::Event ev;
-    while (window.pollEvent(ev))
+   
+    while (std::optional<sf::Event> ev = window.pollEvent())
     {
-        ImGui::SFML::ProcessEvent(ev);
-        if (ev.type == sf::Event::Closed)
+        if (!ev.has_value()) break;
+        auto event = ev.value();
+        ImGui::SFML::ProcessEvent(window, event);
+        if (event.is<sf::Event::Closed>())
         {
             window.close();
             break;
@@ -58,7 +60,7 @@ void App::updateGraphs(float dt)
             ImPlot::PlotLine("output", frequencies, fftStream.getCurrentFFT(), 512);
             
         }
-        if (fftStream.getStatus() == FFTStream::Playing)
+        if (fftStream.getStatus() == FFTStream::Status::Playing)
         {
             float time = 2048 / (44100 * 2);
             currentTime += dt;
@@ -87,13 +89,13 @@ void App::playButton()
     {
         switch (fftStream.getStatus())
         {
-        case FFTStream::Playing:
+        case FFTStream::Status::Playing:
             fftStream.stop();
             break;
-        case FFTStream::Paused:
+        case FFTStream::Status::Paused:
             fftStream.stop();
             break;
-        case FFTStream::Stopped:
+        case FFTStream::Status::Stopped:
             break;
         }
         playingFile = selectedFile;

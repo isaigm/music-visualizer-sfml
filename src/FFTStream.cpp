@@ -20,13 +20,13 @@ FFTStream::~FFTStream()
 void FFTStream::load(std::string path)
 {
     inputFile.openFromFile(path);
-    initialize(inputFile.getChannelCount(), inputFile.getSampleRate());
+    initialize(inputFile.getChannelCount(), inputFile.getSampleRate(), inputFile.getChannelMap());
     peak = 1;
 }
 float FFTStream::getElapsedTime()
 {
     float frac = 0;
-    if (getStatus() == Playing || getStatus() == Paused)
+    if (getStatus() == Status::Playing || getStatus() == Status::Paused)
     {
         frac = getPlayingOffset().asSeconds() / inputFile.getDuration().asSeconds();
     }
@@ -79,11 +79,11 @@ float *FFTStream::getCurrentFFT()
 }
 void FFTStream::toggle()
 {
-    if (getStatus() == Playing)
+    if (getStatus() == Status::Playing)
     {
         pause();
     }
-    else if (getStatus() == Paused)
+    else if (getStatus() == Status::Paused)
     {
         play();
     }

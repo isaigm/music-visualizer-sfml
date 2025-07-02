@@ -1,6 +1,6 @@
 #include "Bar.h"
 #include <iostream>
-Bar::Bar(int height) : bar(sf::LineStrip, height)
+Bar::Bar(int height) : bar(sf::PrimitiveType::LineStrip, height)
 {
    
 }

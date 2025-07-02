@@ -1,0 +1,1 @@
+/usr/bin/c++ -fPIC -Wl,--dependency-file=CMakeFiles/ImGUI.dir/link.d -shared -Wl,-soname,libImGUI.so -o libImGUI.so CMakeFiles/ImGUI.dir/src/imgui.cpp.o CMakeFiles/ImGUI.dir/src/imgui_draw.cpp.o "CMakeFiles/ImGUI.dir/src/imgui-SFML.cpp.o" CMakeFiles/ImGUI.dir/src/imgui_tables.cpp.o CMakeFiles/ImGUI.dir/src/imgui_widgets.cpp.o
