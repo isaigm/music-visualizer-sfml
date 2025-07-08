@@ -58,33 +58,42 @@ void Spectrogram::addLine()
     currLine++;
 }
 
-void Spectrogram::coloredLine(float* fft_data)
+// En Spectrogram.cpp
+void Spectrogram::coloredLine(float* fftData, float sampleRate)
 {
     if (spectrogram.empty()) return;
 
     const int fft_bands = SIZE_FFT / 2;
     const int bar_height = static_cast<int>(m_bounds.size.y);
 
+    // --- CONTROL EXPLÍCITO DEL RANGO (LA MEJOR FORMA) ---
+    // Define la ventana de frecuencias que quieres ver en Hz.
+    const float MIN_VISIBLE_HZ = 100.0f;
+    const float MAX_VISIBLE_HZ = 19000.0f;
+
+    // Convierte esas frecuencias a índices de la FFT.
+    const int min_fft_index = static_cast<int>(MIN_VISIBLE_HZ * SIZE_FFT / sampleRate);
+    const int max_fft_index = static_cast<int>(MAX_VISIBLE_HZ * SIZE_FFT / sampleRate);
+
     for (int y = 0; y < bar_height; y++)
     {
-        // --- MAPEO LOGARÍTMICO DE FRECUENCIA (COMO EN AUDACITY) ---
-        // Normalizamos la posición del píxel
+        // Mapeamos la posición del píxel 'y' a nuestro rango de índices visible.
         float normalized_y = (float)y / (bar_height - 1);
-        // Usamos pow() para que las frecuencias bajas ocupen más espacio, como en Audacity.
-        // Esto es crucial para que la cara no se vea distorsionada.
-        int fft_index = static_cast<int>(std::pow(normalized_y, 1.8) * (fft_bands - 1));
+        // Usamos una curva suave (pow 1.8) dentro de nuestro rango "zoomed".
+        float normalized_y_pow = std::pow(normalized_y, 1.8);
 
-        float db_value = fft_data[fft_index];
-        sf::Color color(11, 8, 40); // Color de fondo (el más oscuro de la paleta)
+        int fft_index = static_cast<int>(lerp(min_fft_index, max_fft_index, normalized_y_pow));
+        fft_index = std::max(0, std::min(fft_bands - 1, fft_index));
+
+        float db_value = fftData[fft_index];
+        sf::Color color(11, 8, 40);
 
         if (db_value >= -90.0f)
         {
-            // Mapeamos los decibelios a nuestra nueva paleta de colores.
             int color_idx = map(db_value, 0, -90, colors.size() - 1, 0);
             color_idx = std::max(0, std::min((int)colors.size() - 1, color_idx));
             color = colors[color_idx];
         }
-
        
         spectrogram.back().setColor(y, color);
     }

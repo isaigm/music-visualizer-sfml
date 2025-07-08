@@ -87,7 +87,7 @@ void App::updateGraphs(float dt)
                 {
                     std::lock_guard<std::mutex> lock(mtx);
                     spectrogram.addLine();
-                    spectrogram.coloredLine(fftStream.getCurrentFFT());
+                    spectrogram.coloredLine(fftStream.getCurrentFFT(), fftStream.getSampleRate());
                     currentTime = 0;
                 }
             }

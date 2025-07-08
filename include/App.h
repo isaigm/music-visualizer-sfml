@@ -28,7 +28,7 @@ private:
     FFTStream fftStream;
     ImGui::FileBrowser fileDialog;
     bool m_showFileErrorPopup = false;
-    Spectrogram spectrogram{{{0.f, 1080 - 512}, {(float)WIDTH, 512.f}}};
+    Spectrogram spectrogram{{{0.f, 0.0f}, {(float)WIDTH, 512.f}}};
     ImFont *font;
     float currentTime = 0;
     float m_playbackProgress = 0.0f;

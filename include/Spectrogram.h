@@ -11,7 +11,7 @@ public:
     void addLine();
     void render(sf::RenderTarget &rt);
     void restart();
-    void coloredLine(float *);
+    void coloredLine(float *fft, float sampleRate);
 
 private:
     void generateColors();
